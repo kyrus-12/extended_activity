@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AH-toms!</title>
+    <style>
+        :root {
+            --bg: #050b14;
+            --accent: #00d4ff;
+            --danger: #ff4757;
+            --success: #2ed573;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(200deg, #4E342E, #1565C0);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-top: 80px;
+            /* Added to disable double-tap zoom behavior */
+            touch-action: manipulation;
+        }
+
+        /* --- Buttons Styling --- */
+        .term-btn {
+            position: fixed;
+            top: 20px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+            z-index: 1000;
+        }
+        .term-btn:hover { background: var(--accent); color: var(--bg); }
+
+        /* --- Modal Styling --- */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 2000; 
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: #101826;
+            margin: 15% auto;
+            padding: 30px;
+            border: 1px solid var(--accent);
+            width: 80%;
+            max-width: 500px;
+            border-radius: 20px;
+            position: relative;
+        }
+        .close-btn {
+            color: white;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        /* --- Lab Bench Styles --- */
+        .header-title { margin-bottom: 20px; text-align: center; }
+        .lab-bench { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); padding: 25px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.1); width: 95%; max-width: 550px; text-align: center; }
+        .viewport { height: 350px; position: relative; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; }
+        .nucleus { width: 50px; height: 50px; background: radial-gradient(circle, #ff6b6b, #ee5253); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; z-index: 100; box-shadow: 0 0 30px rgba(238, 82, 83, 0.5); }
+        .electron-pos-wrapper { position: absolute; top: 50%; left: 50%; width: 0; height: 0; }
+        .electron-rotator { width: 100%; height: 100%; animation: rotate-orbit var(--speed) linear infinite; }
+        .electron { position: absolute; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 10px var(--accent); top: -4px; left: -4px; }
+        .orbit { position: absolute; border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 50%; pointer-events: none; }
+        @keyframes rotate-orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        select, input { width: 100%; padding: 12px; margin: 8px 0; background: rgba(0,0,0,0.5); border: 1px solid #333; color: white; border-radius: 10px; outline: none; box-sizing: border-box; }
+        input:focus { border-color: var(--accent); }
+        .status-tag { padding: 12px; border-radius: 12px; font-weight: bold; margin-top: 10px; transition: all 0.3s ease; }
+        .unstable-shake { animation: shake 0.1s infinite; }
+        @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 100% { transform: translate(1px, 1px); } }
+        footer { margin-top: 20px; font-size: 0.7em; opacity: 0.5; }
+    </style>
+</head>
+<body>
+
+<button class="term-btn" style="left: 20px;" onclick="toggleModal(true)">Terminologies</button>
+<button id="audioBtn" class="term-btn" style="left: 150px;" width="15px;"onclick="toggleAudio()">Play</button>
+
+<div id="player"></div>
+
+<div id="termModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="toggleModal(false)">&times;</span>
+        <h2 style="color: var(--accent);">AHA-toms!</h2>
+        <p><strong>Atomic Number:</strong> Atomic Number is the number of protons in an atom that identifies the element.</p>
+        <p><strong>Electron Configuration:</strong> Electron Configuration is the arrangement or distribution of electrons within the atom.</p>
+     </div>
+</div>
+
+<div class="header-title">
+    <h1 style="margin:0; color: var(--accent);">Extended Activity: AH-toms!</h1>
+</div>
+
+<div class="lab-bench">
+    <div class="viewport" id="viewport">
+        <div class="nucleus" id="nucleus">?</div>
+    </div>
+    <select id="elementSelect" onchange="updateAtom()">
+        <option value="" disabled selected>Select Atomic Number</option>
+    </select>
+    <input type="text" id="nameInput" placeholder="Enter Element Name" oninput="updateAtom()">
+    <input type="number" id="electronInput" placeholder="Total Electrons" oninput="updateAtom()">
+    <div id="result" class="status-tag">Enter Data to Begin</div>
+</div>
+
+<script>
+    // --- YouTube API Logic ---
+    // 1. Add your Video IDs here:
+    const playlistIds = ['BhY264aEZrQ', 'BhY264aEZrQ', 'BhY264aEZrQ']; 
+
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    let player;
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('player', {
+            height: '0',
+            width: '0',
+            videoId: playlistIds[0], // Starts with the first video
+            playerVars: { 
+                'autoplay': 0, 
+                'loop': 1, 
+                'playlist': playlistIds.join(',') // Joins all IDs for continuous loop
+            },
+            events: {}
+        });
+    }
+
+    function toggleAudio() {
+        const btn = document.getElementById('audioBtn');
+        if (!player) return;
+        if (player.getPlayerState() === 1) { // 1 = Playing
+            player.pauseVideo();
+            btn.innerText = "Play";
+        } else {
+            player.playVideo();
+            btn.innerText = "Pause";
+        }
+    }
+
+    // --- Existing Functionality ---
+    function toggleModal(show) {
+        document.getElementById("termModal").style.display = show ? "block" : "none";
+    }
+
+    const elementData = [
+    {s: "H", n: "Hydrogen"}, {s: "He", n: "Helium"}, {s: "Li", n: "Lithium"}, {s: "Be", n: "Beryllium"},
+    {s: "B", n: "Boron"}, {s: "C", n: "Carbon"}, {s: "N", n: "Nitrogen"}, {s: "O", n: "Oxygen"},
+    {s: "F", n: "Fluorine"}, {s: "Ne", n: "Neon"}, {s: "Na", n: "Sodium"}, {s: "Mg", n: "Magnesium"},
+    {s: "Al", n: "Aluminum"}, {s: "Si", n: "Silicon"}, {s: "P", n: "Phosphorus"}, {s: "S", n: "Sulfur"},
+    {s: "Cl", n: "Chlorine"}, {s: "Ar", n: "Argon"}, {s: "K", n: "Potassium"}, {s: "Ca", n: "Calcium"},
+    {s: "Sc", n: "Scandium"}, {s: "Ti", n: "Titanium"}, {s: "V", n: "Vanadium"}, {s: "Cr", n: "Chromium"},
+    {s: "Mn", n: "Manganese"}, {s: "Fe", n: "Iron"}, {s: "Co", n: "Cobalt"}, {s: "Ni", n: "Nickel"},
+    {s: "Cu", n: "Copper"}, {s: "Zn", n: "Zinc"}, {s: "Ga", n: "Gallium"}, {s: "Ge", n: "Germanium"},
+    {s: "As", n: "Arsenic"}, {s: "Se", n: "Selenium"}, {s: "Br", n: "Bromine"}, {s: "Kr", n: "Krypton"},
+    {s: "Rb", n: "Rubidium"}, {s: "Sr", n: "Strontium"}, {s: "Y", n: "Yttrium"}, {s: "Zr", n: "Zirconium"},
+    {s: "Nb", n: "Niobium"}, {s: "Mo", n: "Molybdenum"}, {s: "Tc", n: "Technetium"}, {s: "Ru", n: "Ruthenium"},
+    {s: "Rh", n: "Rhodium"}, {s: "Pd", n: "Palladium"}, {s: "Ag", n: "Silver"}, {s: "Cd", n: "Cadmium"},
+    {s: "In", n: "Indium"}, {s: "Sn", n: "Tin"}, {s: "Sb", n: "Antimony"}, {s: "Te", n: "Tellurium"},
+    {s: "I", n: "Iodine"}, {s: "Xe", n: "Xenon"}, {s: "Cs", n: "Cesium"}, {s: "Ba", n: "Barium"},
+    {s: "La", n: "Lanthanum"}, {s: "Ce", n: "Cerium"}, {s: "Pr", n: "Praseodymium"}, {s: "Nd", n: "Neodymium"},
+    {s: "Pm", n: "Promethium"}, {s: "Sm", n: "Samarium"}, {s: "Eu", n: "Europium"}, {s: "Gd", n: "Gadolinium"},
+    {s: "Tb", n: "Terbium"}, {s: "Dy", n: "Dysprosium"}, {s: "Ho", n: "Holmium"}, {s: "Er", n: "Erbium"},
+    {s: "Tm", n: "Thulium"}, {s: "Yb", n: "Ytterbium"}, {s: "Lu", n: "Lutetium"}, {s: "Hf", n: "Hafnium"},
+    {s: "Ta", n: "Tantalum"}, {s: "W", n: "Tungsten"}, {s: "Re", n: "Rhenium"}, {s: "Os", n: "Osmium"},
+    {s: "Ir", n: "Iridium"}, {s: "Pt", n: "Platinum"}, {s: "Au", n: "Gold"}, {s: "Hg", n: "Mercury"},
+    {s: "Tl", n: "Thallium"}, {s: "Pb", n: "Lead"}, {s: "Bi", n: "Bismuth"}, {s: "Po", n: "Polonium"},
+    {s: "At", n: "Astatine"}, {s: "Rn", n: "Radon"}, {s: "Fr", n: "Francium"}, {s: "Ra", n: "Radium"},
+    {s: "Ac", n: "Actinium"}, {s: "Th", n: "Thorium"}, {s: "Pa", n: "Protactinium"}, {s: "U", n: "Uranium"},
+    {s: "Np", n: "Neptunium"}, {s: "Pu", n: "Plutonium"}, {s: "Am", n: "Americium"}, {s: "Cm", n: "Curium"},
+    {s: "Bk", n: "Berkelium"}, {s: "Cf", n: "Californium"}, {s: "Es", n: "Einsteinium"}, {s: "Fm", n: "Fermium"},
+    {s: "Md", n: "Mendelevium"}, {s: "No", n: "Nobelium"}, {s: "Lr", n: "Lawrencium"}, {s: "Rf", n: "Rutherfordium"},
+    {s: "Db", n: "Dubnium"}, {s: "Sg", n: "Seaborgium"}, {s: "Bh", n: "Bohrium"}, {s: "Hs", n: "Hassium"},
+    {s: "Mt", n: "Meitnerium"}, {s: "Ds", n: "Darmstadtium"}, {s: "Rg", n: "Roentgenium"}, {s: "Cn", n: "Copernicium"},
+    {s: "Nh", n: "Nihonium"}, {s: "Fl", n: "Flerovium"}, {s: "Mc", n: "Moscovium"}, {s: "Lv", n: "Livermorium"},
+    {s: "Ts", n: "Tennessine"}, {s: "Og", n: "Oganesson"}
+];
+
+    const select = document.getElementById("elementSelect");
+    const viewport = document.getElementById("viewport");
+    const nucleus = document.getElementById("nucleus");
+    const result = document.getElementById("result");
+    const nameInput = document.getElementById("nameInput");
+    const electronInput = document.getElementById("electronInput");
+
+    elementData.forEach((el, i) => {
+        let opt = document.createElement("option");
+        opt.value = i + 1;
+        opt.text = `Atomic Number: ${i+1}`;
+        select.appendChild(opt);
+    });
+
+    function updateAtom() {
+        const protons = parseInt(select.value);
+        const electrons = parseInt(electronInput.value);
+        const inputName = nameInput.value.trim().toLowerCase();
+        viewport.querySelectorAll('.orbit, .electron-pos-wrapper').forEach(o => o.remove());
+        if (!protons) { nucleus.innerText = "?"; return; }
+
+        const correctName = elementData[protons-1].n.toLowerCase();
+        const symbol = elementData[protons-1].s;
+        nucleus.innerText = symbol;
+        nucleus.classList.remove("unstable-shake");
+
+        if (!isNaN(electrons) && electrons >= 0) {
+            let rem = electrons;
+            const shells = [2, 8, 18, 32]; 
+            shells.forEach((cap, sIndex) => {
+                if (rem <= 0) return;
+                const inShell = Math.min(rem, cap);
+                const radius = 50 + (sIndex * 30);
+                const speed = 6 + (sIndex * 3); 
+                const orbit = document.createElement('div');
+                orbit.className = 'orbit';
+                orbit.style.width = radius * 2 + 'px';
+                orbit.style.height = radius * 2 + 'px';
+                viewport.appendChild(orbit);
+                for (let i = 0; i < inShell; i++) {
+                    const posWrapper = document.createElement('div');
+                    posWrapper.className = 'electron-pos-wrapper';
+                    const angle = (360 / inShell) * i;
+                    posWrapper.style.transform = `rotate(${angle}deg)`;
+                    const rotator = document.createElement('div');
+                    rotator.className = 'electron-rotator';
+                    rotator.style.setProperty('--speed', speed + 's');
+                    const e = document.createElement('div');
+                    e.className = 'electron';
+                    e.style.transform = `translateX(${radius}px)`;
+                    rotator.appendChild(e);
+                    posWrapper.appendChild(rotator);
+                    viewport.appendChild(posWrapper);
+                }
+                rem -= inShell;
+            });
+        }
+        const hasName = inputName.length > 0;
+        const hasElectrons = !isNaN(electrons);
+
+        if (!hasName || !hasElectrons) {
+            result.innerText = "Complete all fields...";
+            result.style.background = "rgba(255,255,255,0.1)";
+            result.style.color = "white";
+            return;
+        }
+        const nameIsCorrect = (inputName === correctName);
+        const electronsAreCorrect = (electrons === protons);
+
+        if (nameIsCorrect && electronsAreCorrect) {
+            result.innerText = `CORRECT: Stable ${elementData[protons-1].n}!`;
+            result.style.background = "var(--success)";
+            result.style.color = "black";
+        }
+        else if (nameIsCorrect && !electronsAreCorrect) {
+            nucleus.classList.add("unstable-shake");
+            result.innerText = `Correct name, but the electron count is incorrect.`;
+            result.style.background = "#f39c12";
+            result.style.color = "white";
+        }
+        else if (!nameIsCorrect && electronsAreCorrect) {
+            result.innerText = `Correct electron count, but the name is wrong for this atomic number.`;
+            result.style.background = "#4b7cf3";
+            result.style.color = "white";
+        }
+        else {
+            result.innerText = `Incorrect: Both the name and electron configuration do not match.`;
+            result.style.background = "#var(--danger)";
+            result.style.color = "white";
+        }
+    }
+</script>
+</body>
+</html>
