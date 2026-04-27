@@ -113,17 +113,24 @@
     <div class="viewport" id="viewport">
         <div class="nucleus" id="nucleus">?</div>
     </div>
-    <select id="elementSelect" onchange="updateAtom()">
+    <select id="elementSelect" onchange="updateAtom()" autocomplete="off">
         <option value="" disabled selected>Select Atomic Number</option>
     </select>
-    <input type="text" id="nameInput" placeholder="Enter Element Name" oninput="updateAtom()">
-    <input type="number" id="electronInput" placeholder="Total Electrons" oninput="updateAtom()">
+    <input type="text" id="nameInput" placeholder="Enter Element Name" oninput="updateAtom()" autocomplete="off">
+    <input type="number" id="electronInput" placeholder="Total Electrons" oninput="updateAtom()" autocomplete="off">
     <div id="result" class="status-tag">Enter Data to Begin</div>
 </div>
 
 <script>
+    // --- Automatic Reset on Load ---
+    window.onload = () => {
+        document.getElementById("elementSelect").selectedIndex = 0;
+        document.getElementById("nameInput").value = "";
+        document.getElementById("electronInput").value = "";
+        updateAtom();
+    };
+
     // --- YouTube API Logic ---
-    // 1. Add your Video IDs here:
     const playlistIds = ['BhY264aEZrQ', 'BhY264aEZrQ', 'BhY264aEZrQ']; 
 
     const tag = document.createElement('script');
@@ -136,11 +143,11 @@
         player = new YT.Player('player', {
             height: '0',
             width: '0',
-            videoId: playlistIds[0], // Starts with the first video
+            videoId: playlistIds[0], 
             playerVars: { 
                 'autoplay': 0, 
                 'loop': 1, 
-                'playlist': playlistIds.join(',') // Joins all IDs for continuous loop
+                'playlist': playlistIds.join(',') 
             },
             events: {}
         });
@@ -149,7 +156,7 @@
     function toggleAudio() {
         const btn = document.getElementById('audioBtn');
         if (!player) return;
-        if (player.getPlayerState() === 1) { // 1 = Playing
+        if (player.getPlayerState() === 1) { 
             player.pauseVideo();
             btn.innerText = "Play";
         } else {
